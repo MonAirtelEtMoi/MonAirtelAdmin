@@ -1,144 +1,221 @@
 package lab.synah.cd.monairteladmin;
 
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.content.res.Configuration;
-import android.graphics.Color;
+import android.content.res.TypedArray;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.AccelerateInterpolator;
-import android.widget.LinearLayout;
+import android.widget.AdapterView;
+import android.widget.ListView;
+
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import io.codetail.animation.SupportAnimator;
-import io.codetail.animation.ViewAnimationUtils;
-import lab.synah.cd.monairteladmin.fragment.AdminContentFragment;
-import lab.synah.cd.monairteladmin.fragment.PrimoFragment;
-import yalantis.com.sidemenu.interfaces.Resourceble;
-import yalantis.com.sidemenu.interfaces.ScreenShotable;
-import yalantis.com.sidemenu.model.SlideMenuItem;
-import yalantis.com.sidemenu.util.ViewAnimator;
+import lab.synah.cd.monairteladmin.adapter.NavDrawerListAdapter;
+import lab.synah.cd.monairteladmin.fragment.CommandsFragment;
+import lab.synah.cd.monairteladmin.fragment.HomeFragment;
+import lab.synah.cd.monairteladmin.fragment.TestListFragment;
+import lab.synah.cd.monairteladmin.fragment.UsersFragment;
+import lab.synah.cd.monairteladmin.model.NavDrawerItem;
 
-public class AdminActivity extends ActionBarActivity implements ViewAnimator.ViewAnimatorListener{
+public class AdminActivity extends AppCompatActivity {
 
-    private DrawerLayout drawerLayout;
-    private ActionBarDrawerToggle drawerToggle;
-    private List<SlideMenuItem> list = new ArrayList<>();
-    private AdminContentFragment contentFragment;
-    private ViewAnimator viewAnimator;
-    private int res = R.drawable.content_music;
-    private LinearLayout linearLayout;
+    private DrawerLayout mDrawerLayout;
+    private ListView mDrawerList;
+    private ActionBarDrawerToggle mDrawerToggle;
 
+    // nav drawer title
+    private CharSequence mDrawerTitle;
 
+    // used to store app title
+    private CharSequence mTitle;
+
+    // slide menu items
+    private String[] navMenuTitles;
+    private TypedArray navMenuIcons;
+
+    private ArrayList<NavDrawerItem> navDrawerItems;
+    private NavDrawerListAdapter adapter;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
+
+    Toolbar toolbar;
+    ActionBar actionBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
-        contentFragment=AdminContentFragment.newInstance(R.drawable.content_music);
 
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.content_frame,contentFragment)
-                .commit();
-        drawerLayout=(DrawerLayout)findViewById(R.id.drawer_layout);
-        drawerLayout.setScrimColor(Color.TRANSPARENT);
-        linearLayout = (LinearLayout) findViewById(R.id.left_drawer);
-        linearLayout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                drawerLayout.closeDrawers();
-            }
-        });
-
-        setActionBar();
-        createMenuList();
-        viewAnimator = new ViewAnimator<>(this, list, contentFragment, drawerLayout, this);
-
-    }
+        mTitle = mDrawerTitle = getTitle();
 
 
-    private void createMenuList() {
-        SlideMenuItem menuItem0 = new SlideMenuItem(AdminContentFragment.CLOSE, R.drawable.icn_close);
-        list.add(menuItem0);
-        SlideMenuItem menuItem = new SlideMenuItem(AdminContentFragment.USSD, R.drawable.icn_1);
-        list.add(menuItem);
-        SlideMenuItem menuItem2 = new SlideMenuItem(AdminContentFragment.SUSCRIBER, R.drawable.icn_2);
-        list.add(menuItem2);
-        SlideMenuItem menuItem3 = new SlideMenuItem(AdminContentFragment.COMMANDE, R.drawable.icn_3);
-        list.add(menuItem3);
-
-    }
-
-
-    private void setActionBar() {
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //Action bar
+        toolbar=(Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setHomeButtonEnabled(true);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        drawerToggle = new ActionBarDrawerToggle(
-                this,                  /* host Activity */
-                drawerLayout,         /* DrawerLayout object */
-                toolbar,  /* nav drawer icon to replace 'Up' caret */
-                R.string.drawer_open,  /* "open drawer" description */
-                R.string.drawer_close  /* "close drawer" description */
+
+        actionBar=getSupportActionBar();
+        actionBar.setHomeAsUpIndicator(R.drawable.ic_drawer);
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
+
+        // load slide menu items
+        navMenuTitles = getResources().getStringArray(R.array.nav_drawer_items);
+
+        // nav drawer icons from resources
+        navMenuIcons = getResources()
+                .obtainTypedArray(R.array.nav_drawer_icons);
+
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerList = (ListView) findViewById(R.id.list_slidermenu);
+
+        navDrawerItems = new ArrayList<NavDrawerItem>();
+
+        // adding nav drawer items to array
+        // Home
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
+        // Find People
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1)));
+        // Photos
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
+        // Communities, Will add a counter here
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[3], navMenuIcons.getResourceId(3, -1)));
+/*        // Pages
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[4], navMenuIcons.getResourceId(4, -1)));
+        // What's hot, We  will add a counter here
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[5], navMenuIcons.getResourceId(5, -1), true, "50+"));*/
+
+
+        // Recycle the typed array
+        navMenuIcons.recycle();
+
+        mDrawerList.setOnItemClickListener(new SlideMenuClickListener());
+
+        // setting the nav drawer list adapter
+        adapter = new NavDrawerListAdapter(getApplicationContext(),
+                navDrawerItems);
+        mDrawerList.setAdapter(adapter);
+
+        // enabling action bar app icon and behaving it as toggle button
+
+      /* if (getSupportActionBar() != null)
+        {
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+            getSupportActionBar().setHomeButtonEnabled(true);
+        }*/
+
+
+
+        mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+                R.drawable.ic_drawer, //nav menu toggle icon
+                R.string.app_name, // nav drawer open - description for accessibility
+                R.string.app_name // nav drawer close - description for accessibility
         ) {
-
-            /** Called when a drawer has settled in a completely closed state. */
             public void onDrawerClosed(View view) {
-                super.onDrawerClosed(view);
-                linearLayout.removeAllViews();
-                linearLayout.invalidate();
+                getSupportActionBar().setTitle(mTitle);
+                // calling onPrepareOptionsMenu() to show action bar icons
+                invalidateOptionsMenu();
             }
 
-            @Override
-            public void onDrawerSlide(View drawerView, float slideOffset) {
-                super.onDrawerSlide(drawerView, slideOffset);
-                if (slideOffset > 0.6 && linearLayout.getChildCount() == 0)
-                    viewAnimator.showMenuContent();
-            }
-
-            /** Called when a drawer has settled in a completely open state. */
             public void onDrawerOpened(View drawerView) {
-                super.onDrawerOpened(drawerView);
+                getSupportActionBar().setTitle(mDrawerTitle);
+                // calling onPrepareOptionsMenu() to hide action bar icons
+                invalidateOptionsMenu();
             }
         };
-        drawerLayout.setDrawerListener(drawerToggle);
-    }
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
 
+        if (savedInstanceState == null) {
+            // on first time display view for first nav item
+            displayView(0);
+        }
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+    }
 
     @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
-        drawerToggle.syncState();
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Admin Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://lab.synah.cd.monairteladmin/http/host/path")
+        );
+        AppIndex.AppIndexApi.start(client, viewAction);
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        drawerToggle.onConfigurationChanged(newConfig);
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Admin Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://lab.synah.cd.monairteladmin/http/host/path")
+        );
+        AppIndex.AppIndexApi.end(client, viewAction);
+        client.disconnect();
     }
 
+    /**
+     * Slide menu item click listener
+     */
+    private class SlideMenuClickListener implements
+            ListView.OnItemClickListener {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position,
+                                long id) {
+            // display view for selected nav drawer item
+            displayView(position);
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_admin, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (drawerToggle.onOptionsItemSelected(item)) {
+        // toggle nav drawer on selecting action bar app icon/title
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
             return true;
         }
+        // Handle action bar actions click
         switch (item.getItemId()) {
             case R.id.action_settings:
                 return true;
@@ -147,71 +224,81 @@ public class AdminActivity extends ActionBarActivity implements ViewAnimator.Vie
         }
     }
 
-    private ScreenShotable replaceFragment(ScreenShotable screenShotable, int topPosition) {
-        this.res = this.res == R.drawable.content_music ? R.drawable.content_films : R.drawable.content_music;
-        View view = findViewById(R.id.content_frame);
-        int finalRadius = Math.max(view.getWidth(), view.getHeight());
-        SupportAnimator animator = ViewAnimationUtils.createCircularReveal(view, 0, topPosition, 0, finalRadius);
-        animator.setInterpolator(new AccelerateInterpolator());
-        animator.setDuration(ViewAnimator.CIRCULAR_REVEAL_ANIMATION_DURATION);
-
-       // findViewById(R.id.content_overlay).setBackgroundDrawable(new BitmapDrawable(getResources(), screenShotable.getBitmap()));
-        setActiveFragment(0);
-        animator.start();
-        AdminContentFragment contentFragment = AdminContentFragment.newInstance(this.res);
-        getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, contentFragment).commit();
-        return contentFragment;
-
-
-    }
-
+    /* *
+     * Called when invalidateOptionsMenu() is triggered
+     */
     @Override
-    public ScreenShotable onSwitch(Resourceble slideMenuItem, ScreenShotable screenShotable, int position) {
-        switch (slideMenuItem.getName()) {
-            case AdminContentFragment.CLOSE:
-                return screenShotable;
-            default:
-                return replaceFragment(screenShotable, position);
-        }
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // if nav drawer is opened, hide the action items
+        boolean drawerOpen = mDrawerLayout.isDrawerOpen(mDrawerList);
+        menu.findItem(R.id.action_settings).setVisible(!drawerOpen);
+        return super.onPrepareOptionsMenu(menu);
     }
 
-    @Override
-    public void disableHomeButton() {
-        getSupportActionBar().setHomeButtonEnabled(false);
-
-    }
-
-    @Override
-    public void enableHomeButton() {
-        getSupportActionBar().setHomeButtonEnabled(true);
-        drawerLayout.closeDrawers();
-
-    }
-
-    @Override
-    public void addViewToContainer(View view) {
-        linearLayout.addView(view);
-    }
-
-
-    public void setActiveFragment(int position){
-        FragmentManager fragmentManager;
-        FragmentTransaction fragmentTransaction;
-        switch (position){
+    /**
+     * Diplaying fragment view for selected nav drawer list item
+     */
+    private void displayView(int position) {
+        // update the main content by replacing fragments
+        Fragment fragment = null;
+        switch (position) {
             case 0:
-                fragmentManager=getSupportFragmentManager();
-                fragmentTransaction=fragmentManager.beginTransaction();
-                PrimoFragment mainFragment=new PrimoFragment();
-                fragmentTransaction.replace(R.id.content_frame,mainFragment);
-                fragmentTransaction.commit();
+                fragment = new HomeFragment();
                 break;
             case 1:
-                fragmentManager=getSupportFragmentManager();
-                fragmentTransaction=fragmentManager.beginTransaction();
-                AdminContentFragment accountFragment=new AdminContentFragment();
-                fragmentTransaction.replace(R.id.content_frame, accountFragment);
-                fragmentTransaction.commit();
+               // fragment = new UssdFragment();
+                fragment = new TestListFragment();
+                break;
+            case 2:
+                fragment = new CommandsFragment();
+                break;
+            case 3:
+                fragment = new UsersFragment();
+
+            default:
                 break;
         }
+
+        if (fragment != null) {
+            FragmentManager fragmentManager = getFragmentManager();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.frame_container, fragment).commit();
+
+            // update selected item and title, then close the drawer
+            mDrawerList.setItemChecked(position, true);
+            mDrawerList.setSelection(position);
+            setTitle(navMenuTitles[position]);
+            mDrawerLayout.closeDrawer(mDrawerList);
+        } else {
+            // error in creating fragment
+            Log.e("MainActivity", "Error in creating fragment");
+        }
     }
+
+    @Override
+    public void setTitle(CharSequence title) {
+        mTitle = title;
+        getSupportActionBar().setTitle(mTitle);
+    }
+
+    /**
+     * When using the ActionBarDrawerToggle, you must call it during
+     * onPostCreate() and onConfigurationChanged()...
+     */
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        // Sync the toggle state after onRestoreInstanceState has occurred.
+        mDrawerToggle.syncState();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Pass any configuration change to the drawer toggls
+        mDrawerToggle.onConfigurationChanged(newConfig);
+    }
+
+
 }
